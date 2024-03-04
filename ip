@@ -1,0 +1,5 @@
+#!/bin/bash
+
+[[ $# < 1 ]] && echo "Usage: $0 <host>" && exit -1
+
+host $1 | head -n1 | rev | cut -d" " -f1 | rev
