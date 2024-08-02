@@ -2,4 +2,4 @@
 
 [[ $# < 1 ]] && echo "Usage: $0 <host>" && exit -1
 
-host $1 | head -n1 | rev | cut -d" " -f1 | rev
+host $1 | grep "has address" | head -n1 | rev | cut -d" " -f1 | rev
