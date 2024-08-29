@@ -1,0 +1,13 @@
+#!/bin/bash
+
+ORG=$1
+
+response=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/orgs/$ORG)
+
+if [ "$response" -eq 200 ]; then
+	echo "true"
+elif [ "$response" -eq 404 ]; then
+	echo "false"
+else
+	echo "An error occurred. HTTP status code: $response"
+fi
