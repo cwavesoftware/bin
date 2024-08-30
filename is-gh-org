@@ -2,7 +2,10 @@
 
 ORG=$1
 
-response=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/orgs/$ORG)
+response=$(
+	curl -I -s -o /dev/null -w "%{http_code}" https://api.github.com/orgs/$ORG \
+		-H "authorization: token $GH_TOKEN"
+)
 
 if [ "$response" -eq 200 ]; then
 	echo "true"
