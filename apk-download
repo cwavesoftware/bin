@@ -1,0 +1,30 @@
+#!/bin/bash
+
+APP_ID=$1
+
+generate_download_payload() {
+  curl -sk "https://apps.evozi.com/apk-downloader/?id=$APP_ID" >tmp
+
+  var1=$(
+    cat tmp | grep acbb | sed 's/.*acbbddfdcbdba[ :]*\([0-9]*\).*/\1/g'
+  )
+
+  var2=$(
+    cat tmp | grep cebceecbe | sed 's/.*cebceecbe[ :]*\([a-zA-Z]*\).*/\1/g'
+  )
+  var3=$(
+    cat tmp | grep "$var2" | head -n1 | sed -E "s/.*var *$var2 *= *'(.*)';.*$/\1/g"
+  )
+  echo "acbbddfdcbdba=$var1&eadcbeacdcbf=$APP_ID&cebceecbe=$var3&fetch=false"
+}
+
+download_url="https:$(
+  curl -sk \
+    "https://api-apk.evozi.com/download" \
+    --data "$(generate_download_payload)" |
+    jq 'if .status == "success" then .url else empty end' |
+    sed 's/"//g'
+)"
+
+echo "$download_url"
+wget "$download_url"
