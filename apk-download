@@ -1,30 +1,52 @@
 #!/bin/bash
 
+# this script is a shameless hack
+
 APP_ID=$1
 
 generate_download_payload() {
   curl -sk "https://apps.evozi.com/apk-downloader/?id=$APP_ID" >tmp
 
-  var1=$(
-    cat tmp | grep acbb | sed 's/.*acbbddfdcbdba[ :]*\([0-9]*\).*/\1/g'
+  param1name=$(
+    cat tmp | grep -E ": +[0-9]{10}," | sed -E 's/.*\{ +([a-zA-Z]+) +: +[0-9]{10},.*/\1/g'
   )
-
-  var2=$(
-    cat tmp | grep cebceecbe | sed 's/.*cebceecbe[ :]*\([a-zA-Z]*\).*/\1/g'
+  param1value=$(
+    cat tmp | grep -E ": +[0-9]{10}," | sed -E "s/.*$param1name[ :]*([0-9]{10}).*/\1/g"
   )
-  var3=$(
-    cat tmp | grep "$var2" | head -n1 | sed -E "s/.*var *$var2 *= *'(.*)';.*$/\1/g"
+  param2name=$(
+    cat tmp | grep -E ": +[0-9]{10}," |
+      sed -E 's/.*\{ +[a-zA-Z]+ +: +[0-9]{10}, +([a-zA-Z]+): +[a-zA-Z]+, +[a-zA-Z]+:.*/\1/g'
   )
-  echo "acbbddfdcbdba=$var1&eadcbeacdcbf=$APP_ID&cebceecbe=$var3&fetch=false"
+  param3name=$(
+    cat tmp | grep -E ": +[0-9]{10}," |
+      sed -E 's/.*\{ +[a-zA-Z]+ +: +[0-9]{10}, +[a-zA-Z]+: +[a-zA-Z]+, +([a-zA-Z]+):.*/\1/g'
+  )
+  linker=$(
+    cat tmp | grep -E ": +[0-9]{10}," | sed -E "s/.*$param3name[ :]*([a-zA-Z]*),.*/\1/g"
+  )
+  param3value=$(
+    cat tmp | grep "$linker" | head -n1 | sed -E "s/.*var *$linker *= *'(.*)';.*/\1/g"
+  )
+  echo "$param1name=$param1value&$param2name=$APP_ID&$param3name=$param3value&fetch=false"
 }
 
-download_url="https:$(
-  curl -sk \
-    "https://api-apk.evozi.com/download" \
-    --data "$(generate_download_payload)" |
-    jq 'if .status == "success" then .url else empty end' |
-    sed 's/"//g'
-)"
+get_download_url() {
+  url=$(
+    curl -sk \
+      "https://api-apk.evozi.com/download" \
+      --data "$(generate_download_payload)" |
+      jq 'if .status == "success" then .url else .data end' |
+      sed 's/"//g'
+  )
+  echo $url
 
-echo "$download_url"
-wget "$download_url"
+}
+
+url=$(get_download_url)
+if [[ ! $(echo $url | cut -c1-2) == "//" ]]; then
+  echo "error: $url"
+  exit -1
+else
+  echo "$url"
+  wget "https:$url"
+fi
