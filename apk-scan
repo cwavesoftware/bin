@@ -1,0 +1,15 @@
+#!/bin/bash
+
+APK_FILE=$1
+SCANNER_URL="http://localhost:8000"
+
+echo "uploading $APK_FILE ..."
+hash=$(
+  curl -sk -F "file=@$APK_FILE" $SCANNER_URL/api/v1/upload -H "Authorization: $MOBSF_API_KEY" |
+    jq 'if .status=="success" then .hash else empty end' | sed 's/"//g'
+)
+
+[[ -z $hash ]] && echo "error: could not upload" && exit -1
+echo "scanning $APK_FILE $hash"
+curl -sk "$SCANNER_URL/api/v1/scan" --data "hash=$hash" \
+  -H "Authorization: $MOBSF_API_KEY" >scan_$hash.out
