@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Variables
+ORG_NAME="bugbounty-automation" # Replace with your organization name
+GITHUB_TOKEN="$GH_TOKEN" # Replace with your PAT
+
+# GitHub API base URL
+API_URL="https://api.github.com"
+
+# Function to remove a runner
+remove_runner() {
+  local runner_id=$1
+  echo "Removing runner with ID: $runner_id"
+  
+  # DELETE request to remove the runner
+  curl -X DELETE \
+       -H "Authorization: token $GITHUB_TOKEN" \
+       -H "Accept: application/vnd.github+json" \
+       "${API_URL}/orgs/${ORG_NAME}/actions/runners/${runner_id}"
+  
+  echo "Runner $runner_id removed."
+}
+
+# Fetch the list of self-hosted runners
+echo "Fetching list of self-hosted runners..."
+runners=$(curl -s \
+         -H "Authorization: token $GITHUB_TOKEN" \
+         -H "Accept: application/vnd.github+json" \
+         "${API_URL}/orgs/${ORG_NAME}/actions/runners" | jq -r '.runners[] | .id')
+
+if [[ -z "$runners" ]]; then
+  echo "No self-hosted runners found."
+  exit 0
+fi
+
+# Loop through each runner and remove it
+for runner_id in $runners; do
+  remove_runner $runner_id
+done
+
+echo "All self-hosted runners removed from the organization."
