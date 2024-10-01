@@ -2,4 +2,4 @@
 
 [[ $# < 1 ]] && echo "Usage: $0 <ip>" && exit -1
 
-curl ipinfo.io/$1
+curl -s ipinfo.io/$1
