@@ -12,7 +12,7 @@ BASE_URL="https://api.github.com"
 # Loop through all pages
 while true; do
   # Make API request for the current page
-  RESPONSE=$(curl -s -H "Authorization: token $TOKEN" "$BASE_URL/orgs/$ORG/repos?per_page=$PER_PAGE&page=$PAGE")
+  RESPONSE=$(curl -sk -H "Authorization: token $TOKEN" "$BASE_URL/orgs/$ORG/repos?per_page=$PER_PAGE&page=$PAGE")
 
   # Check if the response contains any repositories
   if [[ $(echo "$RESPONSE" | jq '. | length') -eq 0 ]]; then
@@ -23,7 +23,7 @@ while true; do
   echo "$RESPONSE" | jq -r '.[] | .clone_url'
 
   # Check for the 'Link' header to see if there are more pages
-  LINK_HEADER=$(curl -I -s -H "Authorization: token $TOKEN" "$BASE_URL/orgs/$ORG/repos?per_page=$PER_PAGE&page=$PAGE" | grep -i '^Link:')
+  LINK_HEADER=$(curl -Isk -H "Authorization: token $TOKEN" "$BASE_URL/orgs/$ORG/repos?per_page=$PER_PAGE&page=$PAGE" | grep -i '^Link:')
 
   # If there is no 'Link' header or it does not contain 'rel="next"', we've reached the last page
   if [[ ! "$LINK_HEADER" =~ 'rel="next"' ]]; then
