@@ -4,20 +4,20 @@
 GITLAB_TOKEN="$1"
 GROUP_ID="$2"
 GITLAB_API_URL="https://gitlab.com/api/v4"
-CLONE_DIR="./src"
+CLONE_DIR="$3"
 
 # Function to recursively get repos from a group and its subgroups
 get_repos_from_group() {
   local group_id=$1
 
-  # Get list of repositories in the group
-  REPOS=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/groups/$group_id/projects?per_page=100" | jq -r '.[].ssh_url_to_repo')
+  echo "$(date): Get list of repositories in the group $group_id"
+  REPOS=$(curl -s -k --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/groups/$group_id/projects?per_page=100" | jq -r '.[].ssh_url_to_repo')
 
   # Loop through each repository in the group
   for REPO_URL in $REPOS; do
     # Extract repo name from URL
     REPO_NAME=$(basename "$REPO_URL" .git)
-    
+
     # Check if repo already exists locally
     if [ -d "$REPO_NAME" ]; then
       echo "Pulling latest changes for $REPO_NAME..."
@@ -26,16 +26,16 @@ get_repos_from_group() {
       cd ..
     else
       echo "Cloning $REPO_NAME..."
-      git clone "$REPO_URL"
+      git clone "$REPO_URL" "$(echo $REPO_URL | sed -E 's/^git@gitlab\.com\:(.*)\.git$/\1/g')"
     fi
   done
 
-  # Get list of subgroups in the group
-  SUBGROUPS=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/groups/$group_id/subgroups?per_page=100" | jq -r '.[].id')
+  echo "$(date): Get list of subgroups in the group $group_id"
+  SUBGROUPS=$(curl -sk --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_API_URL/groups/$group_id/subgroups?per_page=100" | jq -r '.[].id')
 
   # Recursively fetch repos for each subgroup
   for SUBGROUP_ID in $SUBGROUPS; do
-    echo "Entering subgroup $SUBGROUP_ID..."
+    echo "Entering subgroup $SUBGROUP_ID ..."
     get_repos_from_group "$SUBGROUP_ID"
   done
 }
