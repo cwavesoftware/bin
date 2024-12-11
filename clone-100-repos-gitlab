@@ -17,16 +17,16 @@ get_repos_from_group() {
   for REPO_URL in $REPOS; do
     # Extract repo name from URL
     REPO_NAME=$(basename "$REPO_URL" .git)
-
+    DIR="$(echo $REPO_URL | sed -E 's/^git@gitlab\.com\:(.*)\.git$/\1/g')"
     # Check if repo already exists locally
-    if [ -d "$REPO_NAME" ]; then
-      echo "Pulling latest changes for $REPO_NAME..."
-      cd "$REPO_NAME" || continue
+    if [ -d "$DIR" ]; then
+      echo "Pulling latest changes for $REPO_NAME in $DIR ..."
+      cd "$DIR" || continue
       git pull
-      cd ..
+      cd -
     else
       echo "Cloning $REPO_NAME..."
-      git clone "$REPO_URL" "$(echo $REPO_URL | sed -E 's/^git@gitlab\.com\:(.*)\.git$/\1/g')"
+      git clone "$REPO_URL" $DIR
     fi
   done
 
