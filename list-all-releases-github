@@ -5,9 +5,24 @@ TOKEN="$GH_TOKEN"
 
 PAGE=1
 PER_PAGE=100
+SCOPE_FILE=repos_in_scope.lst
 
 # Base GitHub API URL
 BASE_URL="https://api.github.com"
+
+get_latest_release() {
+  url=$1
+  response=$(
+    curl -s -o tmp -w "%{http_code}" $url -H "authorization: token $TOKEN"
+  )
+
+  if [ "$response" -eq 200 ]; then
+    latest_release=$(cat tmp | jq '.[] | .tag_name' | sed 's/"//g')
+    echo "$repo:$latest_release"
+  else
+    echo "an error occured. github response code $response"
+  fi
+}
 
 # Loop through all pages
 while true; do
@@ -23,15 +38,15 @@ while true; do
     repo=$(echo $url | cut -d '/' -f 6)
     url="$(echo $url | sed 's/{.*//')?per_page=1"
 
-    response=$(
-      curl -s -o tmp -w "%{http_code}" $url -H "authorization: token $TOKEN"
-    )
-
-    if [ "$response" -eq 200 ]; then
-      latest_release=$(cat tmp | jq '.[] | .tag_name' | sed 's/"//g')
-      echo "$repo:$latest_release"
+    if [[ -f $SCOPE_FILE ]]; then
+      while IFS= read -r regex; do
+        if [[ "$repo" =~ $regex ]]; then
+          get_latest_release $url
+          break
+        fi
+      done <$SCOPE_FILE
     else
-      echo "an error occured. github response code $response"
+      get_latest_release $url
     fi
   done
 
