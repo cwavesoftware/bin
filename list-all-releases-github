@@ -1,0 +1,48 @@
+#!/bin/bash
+
+ORG="$1"
+TOKEN="$GH_TOKEN"
+
+PAGE=1
+PER_PAGE=100
+
+# Base GitHub API URL
+BASE_URL="https://api.github.com"
+
+# Loop through all pages
+while true; do
+  # Make API request for the current page
+  RESPONSE=$(curl -sk -H "Authorization: token $TOKEN" "$BASE_URL/orgs/$ORG/repos?per_page=$PER_PAGE&page=$PAGE")
+
+  # Check if the response contains any repositories
+  if [[ $(echo "$RESPONSE" | jq '. | length') -eq 0 ]]; then
+    break
+  fi
+
+  echo "$RESPONSE" | jq -r '.[] | .releases_url' | while read url; do
+    repo=$(echo $url | cut -d '/' -f 6)
+    url="$(echo $url | sed 's/{.*//')?per_page=1"
+
+    response=$(
+      curl -s -o tmp -w "%{http_code}" $url -H "authorization: token $TOKEN"
+    )
+
+    if [ "$response" -eq 200 ]; then
+      latest_release=$(cat tmp | jq '.[] | .tag_name' | sed 's/"//g')
+      echo "$repo:$latest_release"
+    else
+      echo "an error occured. github response code $response"
+    fi
+  done
+
+  # Check for the 'Link' header to see if there are more pages
+  LINK_HEADER=$(curl -Isk -H "Authorization: token $TOKEN" "$BASE_URL/orgs/$ORG/repos?per_page=$PER_PAGE&page=$PAGE" | grep -i '^Link:')
+
+  # If there is no 'Link' header or it does not contain 'rel="next"', we've reached the last page
+  if [[ ! "$LINK_HEADER" =~ 'rel="next"' ]]; then
+    break
+  fi
+
+  # Move to the next page
+  PAGE=$((PAGE + 1))
+done
