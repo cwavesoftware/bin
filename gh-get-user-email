@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+USERNAME=${1:-""}
+if [[ "$USERNAME" == "" ]]; then
+  echo "" && exit 0
+fi
+
+# make sure you have GH_TOKEN in your env
+
+function get_user_email() {
+  r=$(
+    curl \
+      -skL \
+      -o tmp \
+      -w "%{http_code}" \
+      -H "authorization: Bearer $GH_TOKEN" \
+      "https://api.github.com/users/$USERNAME"
+  )
+
+  if [[ $r -eq 404 ]]; then
+    echo "not found"
+    exit -1
+  elif [[ $r -ne '200' ]]; then
+    echo "WARN: something is wrong"
+  fi
+
+  cat tmp |
+    jq '.email' |
+    sed 's/"//g'
+}
+
+email=$(get_user_email $USERNAME)
+echo $email

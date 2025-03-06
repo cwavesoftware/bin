@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+ORG=$1 || exit
+# make sure you have GH_TOKEN in your env
+
+function get_top_contributor() {
+  local repo="$1"
+  repo="$(echo $repo | sed -r 's/^.*\/(.*)\.git$/\1/g')"
+  r=$(
+    curl \
+      -skL \
+      -o tmp \
+      -w "%{http_code}" \
+      -H "authorization: Bearer $GH_TOKEN" \
+      "https://api.github.com/repos/$ORG/$repo/contributors"
+  )
+  [[ $r -ne '200' ]] && echo "WARN: something is wrong with repo $repo"
+  cat tmp |
+    jq 'first(.[] | select(.type == "User")).login' |
+    sed 's/"//g'
+}
+
+if [[ ${2:-"not_set"} == "skip" ]] && [[ -s "repos.lst" ]]; then
+  echo "skipping repo pull"
+else
+  echo "$(date): getting repos ..." && bash ./list-all-repos-github $ORG >repos.lst && echo "$(date): got $(cat repos.lst | wc -l) repos"
+fi
+
+while read -r repo; do
+  echo -n "getting top contributor to $repo ... -> "
+  top=$(get_top_contributor $repo)
+  email=$(get-gh-user-email $top)
+  echo "$top | $email"
+done <repos.lst

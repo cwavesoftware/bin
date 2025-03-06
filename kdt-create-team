@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# make sure you have KONDUKTO_HOST and KONDUKTO_TOKEN in env
+TEAM=$(echo $1 | sed 's/[ &]//g')
+USER="$2"
+GET_USER_ID=$3
+
+pad() {
+  string="$1"
+
+  if [[ ${#string} -lt 3 ]]; then
+    padding=$((3 - ${#string}))
+    for ((i = 0; i < padding; i++)); do
+      string+="_"
+    done
+  fi
+
+  echo "$string"
+}
+
+TEAM=$(pad $TEAM)
+
+get_user() {
+  user_id=$(
+    curl \
+      -sk \
+      "$KONDUKTO_HOST/api/v2/users?q=$USER" \
+      --header "X-Cookie: $KONDUKTO_TOKEN" \
+      --header 'Content-Type: application/json' |
+      jq -r "if .total == 1 then .users[0].id else empty end"
+  )
+  echo $user_id
+
+}
+
+create_team() {
+  teamId=$(
+    curl \
+      -sk \
+      "$KONDUKTO_HOST/api/v2/teams" \
+      --header "X-Cookie: $KONDUKTO_TOKEN" \
+      --header 'Content-Type: application/json' \
+      --data-raw "{
+      \"name\": \"$TEAM\",
+      \"issue_responsible\": {
+      \"id\":\"$1\"
+          }
+        }" |
+      jq -r ".id // ."
+  )
+  echo $teamId
+}
+
+if [[ "$GET_USER_ID" == "true" ]]; then
+  uid=$(get_user)
+  if [[ "$uid" == "" ]]; then
+    echo "$(date): could not find user $USER"
+    exit -1
+  fi
+else
+  uid="$USER"
+fi
+
+echo -n "$(date): creating team \"$TEAM\" ... "
+create_team $uid
