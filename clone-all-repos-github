@@ -19,8 +19,20 @@ while true; do
     break
   fi
 
-  echo "$RESPONSE" | jq -r '.[] | .clone_url' | while read -r REPO; do
-    git clone $(echo $REPO | sed "s/github\.com/$TOKEN@github\.com/g")
+  echo "$RESPONSE" | jq -r '.[] | .clone_url' | while read -r REPO_URL; do
+    # Extract repo name from URL
+    REPO_NAME=$(basename "$REPO_URL" .git)
+    DIR=$REPO_NAME
+    # Check if repo already exists locally
+    if [ -d "$DIR" ]; then
+      echo "Pulling latest changes for $REPO_NAME in $DIR ..."
+      cd "$DIR" || continue
+      git pull
+      cd -
+    else
+      echo "Cloning $REPO_NAME..."
+      git clone $(echo $REPO_URL | sed "s/github\.com/$TOKEN@github\.com/g")
+    fi
   done
 
   # Check for the 'Link' header to see if there are more pages
