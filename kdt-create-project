@@ -1,0 +1,55 @@
+#!/bin/bash
+
+[[ $# -eq 2 ]] || (echo "usage: $0 <project_name> <label>" && exit -1)
+
+# make sure you have KONDUKTO_HOST and KONDUKTO_TOKEN in env
+
+GIT_URL=$1
+LABEL=$2
+
+create_project() {
+  res=$(
+    curl \
+      -w "%{http_code}" \
+      -o tmp \
+      -sk \
+      "$KONDUKTO_HOST/api/v2/projects" \
+      --header "X-Cookie: $KONDUKTO_TOKEN" \
+      --header 'Content-Type: application/json' \
+      --data-raw "{
+    \"name\":\"\",
+    \"source\":{
+      \"tool\":\"github\",
+      \"id\":\"\",
+      \"url\":\"$GIT_URL\",
+      \"clone_disabled\":false,
+      \"path_scope\":{
+        \"include_empty\":false,
+        \"included_paths\":\"\",
+        \"included_files\":\"\"
+      }
+    },
+    \"team\":
+      {\"name\":\"\"},
+    \"labels\":[{\"name\":\"$LABEL\"}],
+    \"override\":false,
+    \"overwrite\":false,
+    \"fork_source_branch\":\"\",
+    \"feature_branch_retention\":0,
+    \"feature_branch_no_retention\":false,
+    \"default_branch\":\"main\",\"criticality_level\":0
+    }"
+  )
+  if [[ $res -eq 201 ]]; then
+    cat tmp | jq -r '.message + ": id " + .project.id'
+    exit
+  elif [[ $res -eq 409 ]]; then
+    cat tmp | jq -r '"warning: " + .error'
+    exit
+  else
+    echo "error: response code: $res message: $(cat tmp | jq '.error')"
+    exit $res
+  fi
+}
+
+create_project
