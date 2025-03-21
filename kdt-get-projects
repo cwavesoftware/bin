@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+OUT=projects.lst
+if [[ -f $OUT ]]; then rm $OUT; fi
+
+get_kdt_projects() {
+  local start=0
+  local total=0
+  local count=-1
+
+  while [[ $count -lt $total ]]; do
+    # echo "starting at $start"
+    res=$(
+      curl -sk \
+        "$KONDUKTO_HOST/api/v2/projects?start=$start" \
+        --header "X-Cookie: $KONDUKTO_TOKEN"
+    )
+
+    total=$(
+      echo $res | jq '.total'
+    )
+
+    echo $res | jq -r '.projects[] | .id + ":" + .name' | anew $OUT
+    count=$(
+      cat $OUT | wc -l | tr -d ' '
+    )
+    start=$count
+  done
+}
+
+get_kdt_projects
