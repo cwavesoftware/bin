@@ -33,6 +33,10 @@ fi
 while read -r repo; do
   echo -n "getting top contributor to $repo ... -> "
   top=$(get_top_contributor $repo)
-  email=$(get-gh-user-email $top)
+  if [[ $top =~ ^WARN: ]]; then
+    echo $top
+    continue
+  fi
+  email=$(gh-get-user-email $top)
   echo "$top | $email"
 done <repos.lst

@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+if [[ $# -eq 0 ]]; then
+  echo "usage: $0 <repo>"
+  exit 1
+fi
+
+# make sure you have GH_TOKEN in your env
+
+REPO=$1
+
+function get_repo_sbom() {
+  r=$(
+    curl \
+      -skL \
+      -o tmp \
+      -w "%{http_code}" \
+      -H "authorization: Bearer $GH_TOKEN" \
+      "https://api.github.com/repos/$REPO/dependency-graph/sbom"
+  )
+
+  if [[ $r -eq 404 ]]; then
+    echo "not found"
+    exit 1
+  elif [[ $r -ne '200' ]]; then
+    echo "WARN: something is wrong"
+    exit 2
+  fi
+
+  cat tmp |
+    jq -r '.sbom'
+}
+
+get_repo_sbom
