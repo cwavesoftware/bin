@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: $0 <json_file>"
+  exit 1
+fi
+
+jq '{event: .}' $1 >event.json
+
+res=$(
+  curl \
+    -w "%{http_code}" \
+    -o tmp \
+    -sk \
+    "$SPLUNK_HOST/services/collector/event" \
+    --header "Authorization: Splunk $SPLUNK_TOKEN" \
+    --header "content-type: application/json" \
+    --data @event.json
+)
+if [[ $res -eq 200 ]]; then
+  cat tmp | jq -r '.text'
+  exit $(cat tmp | jq -r '.code')
+else
+  echo "error: http response code: $res, splunk response code: $(cat tmp | jq -r '.code'), splunk message: $(cat tmp | jq '.text')"
+  exit $res
+fi
