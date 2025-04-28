@@ -4,8 +4,8 @@ set -e          # causes the script to exit immediately if any command exits wit
 set -u          # prevents the script from using unset variables
 set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
 
-if [[ $# -ne 3 ]]; then
-  echo "usage: $0 <sbom_file> <project> <branch>"
+if [[ $# -ne 4 ]]; then
+  echo "usage: $0 <sbom_file> <project> <branch> <sbom_type>"
   exit 1
 fi
 
@@ -14,6 +14,7 @@ fi
 TOOL_OUTFILE=$1
 REPO_NAME=$2
 branch=$3
+SBOM_TYPE=$4
 
 linux=1
 macos=1
@@ -61,7 +62,7 @@ if [[ ! "$ok" == "true" ]]; then
 fi
 
 echo "$(date):INFO: importing $TOOL_OUTFILE into kdt ..."
-kdt sbom import -f $TOOL_OUTFILE -p $REPO_NAME -b $branch
+kdt sbom import -f $TOOL_OUTFILE -p $REPO_NAME -b $branch -s $SBOM_TYPE
 if [[ $? -ne 0 ]]; then
   msg="$(date):ERROR: cannot import $TOOL_OUTFILE sbom into kdt"
   echo "$msg"
