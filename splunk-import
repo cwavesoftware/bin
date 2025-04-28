@@ -25,6 +25,6 @@ if [[ $res -eq 200 ]]; then
   cat tmp | jq -r '.text'
   exit $(cat tmp | jq -r '.code')
 else
-  echo "error: http response code: $res, splunk response code: $(cat tmp | jq -r '.code'), splunk message: $(cat tmp | jq '.text')"
+  echo "$(date):ERROR: http response code: $res, splunk response code: $(cat tmp | jq -r '.code'), splunk message: $(cat tmp | jq '.text')"
   exit $res
 fi

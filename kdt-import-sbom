@@ -1,0 +1,71 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+if [[ $# -ne 3 ]]; then
+  echo "usage: $0 <sbom_file> <project> <branch>"
+  exit 1
+fi
+
+# make sure you have KONDUKTO_HOST and KONDUKTO_TOKEN in env
+
+TOOL_OUTFILE=$1
+REPO_NAME=$2
+branch=$3
+
+linux=1
+macos=1
+if [[ "$(uname -s)" == "Linux" ]]; then
+  linux=0
+elif [[ "$(uname -s)" == "Darwin" ]]; then # Darwin is the kernel name for macOS
+  macos=0
+else
+  echo "Running on an unknown operating system"
+  exit 2
+fi
+
+ok_to_upload() {
+  res=$(
+    curl \
+      -w "%{http_code}" \
+      -o tmp \
+      -sk \
+      "$KONDUKTO_HOST/api/v2/projects/$1/sbom/scans" \
+      --header "X-Cookie: $KONDUKTO_TOKEN"
+  )
+  if [[ $res -eq 200 ]]; then
+    if [[ $(cat tmp | jq -r '.scans | map(select(.status == "working")) | length') -eq 0 ]]; then
+      echo true
+    else
+      echo there is a working import already
+    fi
+  elif [[ $res -eq 409 ]]; then
+    cat tmp | jq -r '"warning: " + .error'
+  else
+    echo "error: response code: $res message: $(cat tmp | jq '.error')"
+  fi
+}
+
+proj_id=$(kdt-get-project-id $REPO_NAME)
+if [[ "$proj_id" == "null" ]] || [[ "$proj_id" =~ ^error* ]]; then
+  echo "$(date): ERROR: cannot get kdt project id for $REPO_NAME"
+  exit 3
+fi
+
+ok=$(ok_to_upload $proj_id)
+if [[ ! "$ok" == "true" ]]; then
+  echo "$(date):ERROR: cannot upload sbom to kdt, $ok"
+  exit 4
+fi
+
+echo "$(date):INFO: importing $TOOL_OUTFILE into kdt ..."
+kdt sbom import -f $TOOL_OUTFILE -p $REPO_NAME -b $branch
+if [[ $? -ne 0 ]]; then
+  msg="$(date):ERROR: cannot import $TOOL_OUTFILE sbom into kdt"
+  echo "$msg"
+  exit 5
+else
+  echo "$(date):INFO: success"
+fi
