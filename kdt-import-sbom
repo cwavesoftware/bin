@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -x          # enables a mode of the shell where all executed commands are printed to the terminal
 set -e          # causes the script to exit immediately if any command exits with a non-zero status
 set -u          # prevents the script from using unset variables
 set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
