@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -x          # enables a mode of the shell where all executed commands are printed to the terminal
 set -e          # causes the script to exit immediately if any command exits with a non-zero status
 set -u          # prevents the script from using unset variables
 set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
@@ -63,7 +62,7 @@ if [[ ! "$ok" == "true" ]]; then
 fi
 
 echo "$(date):INFO: importing $TOOL_OUTFILE into kdt ..."
-kdt sbom import -f $TOOL_OUTFILE -p $REPO_NAME -b $branch -s $SBOM_TYPE
+kdt sbom import -f $TOOL_OUTFILE -p $REPO_NAME -b $branch -s $SBOM_TYPE -v
 if [[ $? -ne 0 ]]; then
   msg="$(date):ERROR: cannot import $TOOL_OUTFILE sbom into kdt"
   echo "$msg"
