@@ -51,8 +51,14 @@ ok_to_upload() {
 
 proj_id=$(kdt-get-project-id $REPO_NAME)
 if [[ "$proj_id" == "null" ]] || [[ "$proj_id" =~ ^error* ]]; then
-  echo "$(date): ERROR: cannot get kdt project id for $REPO_NAME"
+  echo "$(date):ERROR: cannot get kdt project id for $REPO_NAME"
+  echo "$(date):INFO: trying to create project $REPO_NAME ..."
+  proj_id=$(kdt-create-project "https://github.com/$ORG/$REPO_NAME" sbom)
+  if [[ $? -ne 0 ]]; then
+    msg="$(date):ERROR: cannot create project $REPO_NAME in kdt. $proj_id"
+    echo "$msg"
   exit 3
+  fi
 fi
 
 ok=$(ok_to_upload $proj_id)

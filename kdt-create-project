@@ -44,7 +44,7 @@ create_project() {
     }"
   )
   if [[ $res -eq 201 ]]; then
-    cat tmp | jq -r '.message + ": id " + .project.id'
+    cat tmp | jq -r '.project.id'
     exit
   elif [[ $res -eq 409 ]]; then
     cat tmp | jq -r '"warning: " + .error'
