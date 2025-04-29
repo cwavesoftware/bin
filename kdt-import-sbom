@@ -58,7 +58,7 @@ fi
 ok=$(ok_to_upload $proj_id)
 if [[ ! "$ok" == "true" ]]; then
   if [[ "$ok" == "warn" ]]; then
-    echo "$(date):WARN: sbom upload is in progress, please wait ..."
+    echo "$(date):WARN: sbom upload is in progress, skipping ..."
     exit 0
   fi
   echo "$(date):ERROR: cannot upload sbom to kdt, $ok"
