@@ -40,10 +40,10 @@ ok_to_upload() {
     if [[ $(cat tmp | jq -r '.scans | map(select(.status == "working")) | length') -eq 0 ]]; then
       echo true
     else
-      echo there is a working import already
+      echo warn
     fi
   elif [[ $res -eq 409 ]]; then
-    cat tmp | jq -r '"warning: " + .error'
+    cat tmp | jq -r '"error: " + .error'
   else
     echo "error: response code: $res message: $(cat tmp | jq '.error')"
   fi
@@ -57,6 +57,10 @@ fi
 
 ok=$(ok_to_upload $proj_id)
 if [[ ! "$ok" == "true" ]]; then
+  if [[ "$ok" == "warn" ]]; then
+    echo "$(date):WARN: sbom upload is in progress, please wait ..."
+    exit 0
+  fi
   echo "$(date):ERROR: cannot upload sbom to kdt, $ok"
   exit 4
 fi
@@ -64,7 +68,7 @@ fi
 echo "$(date):INFO: importing $TOOL_OUTFILE into kdt ..."
 kdt sbom import -f $TOOL_OUTFILE -p $REPO_NAME -b $branch -s $SBOM_TYPE -v
 if [[ $? -ne 0 ]]; then
-  msg="$(date):ERROR: cannot import $TOOL_OUTFILE sbom into kdt"
+  msg="$(date):ERROR: cannot import $TOOL_OUTFILE for project $REPO_NAME into kdt"
   echo "$msg"
   exit 5
 else
