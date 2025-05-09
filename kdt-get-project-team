@@ -1,0 +1,28 @@
+#!/bin/bash
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: $0 <project_name>"
+  exit 1
+fi
+
+# make sure you have KONDUKTO_HOST and KONDUKTO_TOKEN in env
+
+project_name=$1
+
+get_project_id() {
+  res=$(
+    curl \
+      -w "%{http_code}" \
+      -o tmp \
+      -sk \
+      "$KONDUKTO_HOST/api/v2/projects?name=$project_name" \
+      --header "X-Cookie: $KONDUKTO_TOKEN"
+  )
+  if [[ $res -eq 200 ]]; then
+    cat tmp | jq -r '.projects[0].team.name'
+  else
+    echo "error: response code: $res message: $(cat tmp | jq '.error')"
+  fi
+}
+
+get_project_id

@@ -4,16 +4,16 @@ set -e          # causes the script to exit immediately if any command exits wit
 set -u          # prevents the script from using unset variables
 set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
 
-# <projects_lst_file> has one project per line in the format <project_id>:<project_name>
-if [[ $# -ne 2 ]]; then
-  echo "usage: $0 <projects_lst_file> <product_id>"
+if [[ $# -ne 3 ]]; then
+  echo "usage: $0 <proj_id> <team_name> <team_id>"
   exit 1
 fi
 
 # make sure you have KONDUKTO_HOST and KONDUKTO_TOKEN in env
 
-projects_file=$1
-prod_id=$2
+proj_id=$1
+team_name=$2
+team_id=$3
 
 curl_out="tmp_$(basename $0)"
 res=$(
@@ -22,17 +22,19 @@ res=$(
       -o $curl_out \
       -sk \
       -X PATCH \
-      "$KONDUKTO_HOST/api/v2/products/$prod_id" \
+      "$KONDUKTO_HOST/api/v2/projects/$proj_id" \
       --header "X-Cookie: $KONDUKTO_TOKEN" \
       --header 'Content-Type: application/json' \
       --data-raw "{
-      \"projects\": [
-    $(awk -F':' '{print "        {\"id\": \"" $1 "\"},"}' "$projects_file" | sed '$ s/,$//')
-      ]
+      \"name\": \"\",
+      \"team\": {
+        \"id\": \"$team_id\",
+        \"name\": \"$team_name\"
+      }
     }"
   )
   if [[ $res -eq 200 ]]; then
-    echo "$(date):INFO:success - now $(cat $curl_out | jq '.product.name') has $(cat $curl_out | jq '.product.projects_count') projects"
+    echo "$(date):INFO:success - now $(cat $curl_out | jq '.project.name') is part of $(cat $curl_out | jq '.project.team.name') team"
     if [[ -n "${DEBUG:-}" ]]; then
       echo "$(date):DEBUG:$(cat $curl_out)"
     fi
