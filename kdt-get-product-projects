@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: $0 <prod_id>"
+  exit 1
+fi
+
+# make sure you have KONDUKTO_HOST and KONDUKTO_TOKEN in env
+
+prod_id=$1
+curl_out="tmp_$(basename $0)"
+
+get_prod_id() {
+  res=$(
+    curl \
+      -w "%{http_code}" \
+      -o $curl_out \
+      -sk \
+      "$KONDUKTO_HOST/api/v2/products/$prod_id" \
+      --header "X-Cookie: $KONDUKTO_TOKEN"
+  )
+  if [[ $res -eq 200 ]]; then
+    cat $curl_out | jq -r '.product.projects[] | .id + ":" + .name'
+  else
+    echo "error: response code: $res message: $(cat tmp | jq '.error')"
+    exit 1
+  fi
+}
+
+get_prod_id

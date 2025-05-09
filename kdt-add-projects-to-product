@@ -32,7 +32,9 @@ res=$(
   )
   if [[ $res -eq 200 ]]; then
     echo "$(date):INFO:success - now $(cat $curl_out | jq '.product.name') has $(cat $curl_out | jq '.product.projects_count') projects"
-    echo "$(date):DEBUG:$(cat $curl_out)"
+    if [[ -n "${DEBUG:-}" ]]; then
+      echo "$(date):DEBUG:$(cat $curl_out)"
+    fi
     exit
   else
     echo "error: response code: $res message: $(cat $curl_out | jq '.error')"
