@@ -1,28 +1,30 @@
 #!/bin/bash
 
 if [[ $# -ne 1 ]]; then
-  echo "usage: $0 <project_name>"
+  echo "usage: $0 <prod_name>"
   exit 1
 fi
 
 # make sure you have KONDUKTO_HOST and KONDUKTO_TOKEN in env
 
-project_name=$1
+prod_name=$1
+curl_out="tmp_$(basename $0)"
 
-get_project_id() {
+get_prod_id() {
   res=$(
     curl \
       -w "%{http_code}" \
-      -o tmp \
+      -o $curl_out \
       -sk \
-      "$KONDUKTO_HOST/api/v2/projects?name=$project_name" \
+      "$KONDUKTO_HOST/api/v2/products?name=$prod_name" \
       --header "X-Cookie: $KONDUKTO_TOKEN"
   )
   if [[ $res -eq 200 ]]; then
-    cat tmp | jq -r '.projects[0].id'
+    cat $curl_out | jq -r '.products[] | select(.name == "'$prod_name'") | .id'
   else
     echo "error: response code: $res message: $(cat tmp | jq '.error')"
+    exit 1
   fi
 }
 
-get_project_id
+get_prod_id

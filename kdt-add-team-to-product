@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+if [[ $# -ne 2 ]]; then
+  echo "usage: $0 <team_name> <product_name>"
+  exit 1
+fi
+
+team=$1
+prod_name=$2
+
+echo "$(date):INFO:getting project list for team $team ..."
+kdt-get-projects "$team" > "${team}_projects.lst"
+echo "$(date):INFO:got $(wc -l < "${team}_projects.lst") projects for team $team"
+
+prod_id=$(kdt-get-product-id "$prod_name")
+if [[ $? -ne 0 ]] || [[ -z $prod_id ]] || [[ $prod_id == "null" ]]; then
+    echo "$(date):warn: product $prod_name not found, will be created"
+    kdt-create-product "$prod_name" "${team}_projects.lst"
+else
+    echo "$(date):INFO:product $prod_name found, id $prod_id"
+    echo "$(date):INFO:adding projects to product $prod_name ..."
+    kdt-add-projects-to-product "${team}_projects.lst" "$prod_id"
+fi
+
+

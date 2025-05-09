@@ -4,6 +4,7 @@ set -e          # causes the script to exit immediately if any command exits wit
 set -u          # prevents the script from using unset variables
 set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
 
+TEAM=${1:-""}
 OUT=projects.lst
 if [[ -f $OUT ]]; then rm $OUT; fi
 
@@ -16,7 +17,7 @@ get_kdt_projects() {
     # echo "starting at $start"
     res=$(
       curl -sk \
-        "$KONDUKTO_HOST/api/v2/projects?start=$start" \
+        "$KONDUKTO_HOST/api/v2/projects?start=$start&team=$TEAM" \
         --header "X-Cookie: $KONDUKTO_TOKEN"
     )
 
