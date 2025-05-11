@@ -5,7 +5,7 @@ set -u          # prevents the script from using unset variables
 set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
 
 TEAM=${1:-""}
-OUT=projects.lst
+OUT=${TEAM}_projects.lst
 if [[ -f $OUT ]]; then rm $OUT; fi
 
 get_kdt_projects() {
@@ -25,7 +25,7 @@ get_kdt_projects() {
       echo $res | jq '.total'
     )
 
-    echo $res | jq -r '.projects[] | .id + ":" + .name' | anew $OUT
+    echo $res | jq -r '.projects[] | .id + ":" + .name' | anew "$OUT"
     count=$(
       cat $OUT | wc -l | tr -d ' '
     )
