@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+if [[ $# -ne 2 ]]; then
+  echo "usage: $0 <level> <message>"
+  exit 1
+fi
+
+DEVENV=${DEVENV:-false}
+level="$1"
+message="$2"
+curl_out="tmp_$(basename $0)"
+
+if [[ "$level" == "ERROR" ]]; then
+    slack_channel_id=$SLACK_ERROR_CHANNEL
+elif [[ "$level" == "INFO" ]]; then
+    slack_channel_id=$SLACK_INFO_CHANNEL
+elif [[ "$level" == "DEBUG" ]]; then
+    slack_channel_id=$SLACK_DEBUG_CHANNEL
+fi
+
+payload=$(jq -n --arg text "$message" --arg channel "$slack_channel_id" \
+        '{token: $ENV.slack_token, channel: $channel, text: $text}')
+
+curl -sk -X POST "https://slack.com/api/chat.postMessage" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $SLACK_TOKEN" \
+    -d "$payload" \
+    -o "$curl_out"
+
+ok=$(jq -r '.ok' $curl_out)
+
+if [[ "$ok" == "true" ]]; then
+    echo "$(date):INFO:slack notification sent successfully."
+    exit 0
+else
+    echo "$(date):ERROR:failed to send slack notification."
+    exit 1
+fi
