@@ -1,0 +1,4 @@
+#!/bin/bash
+# This script will turn on the PWR (red) LED on the board
+
+echo default-on |sudo tee /sys/class/leds/PWR/trigger

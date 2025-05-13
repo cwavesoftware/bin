@@ -1,0 +1,4 @@
+#!/bin/bash
+# This script will turn heartbeat the PWR (red) LED on the board
+
+echo heartbeat | sudo tee /sys/class/leds/PWR/trigger

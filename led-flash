@@ -1,0 +1,4 @@
+#!/bin/bash
+# This script will flash the PWR (red) LED on the board
+
+while true; do echo 1 |sudo tee /sys/class/leds/PWR/brightness; sleep 1; echo 0 |sudo tee /sys/class/leds/PWR/brightness; sleep 1 ;done

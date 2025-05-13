@@ -1,0 +1,5 @@
+#!/bin/bash
+# This script will turn off the PWR (red) LED on the board
+
+echo none |sudo tee /sys/class/leds/PWR/trigger
+echo 0 |sudo tee /sys/class/leds/PWR/brightness
