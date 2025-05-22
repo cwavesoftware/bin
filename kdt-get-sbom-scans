@@ -44,7 +44,7 @@ get_sboms() {
         cat $OUT | jq -r '.id' | wc -l | tr -d ' '
       )
       start=$count
-      echo $count $total
+      echo "$count $total" >&2
     else
       echo "error: response code: $res message: $(cat curl_out | jq '.error')"
       exit 1
