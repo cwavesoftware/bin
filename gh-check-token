@@ -1,0 +1,29 @@
+#!/bin/bash                                                                    
+                                                                               
+# Check if a token is provided as an argument                                  
+if [ -z "$1" ]; then                                                           
+  GITHUB_TOKEN="$GH_TOKEN"                                                              
+else
+  GITHUB_TOKEN="$1"                                                              
+fi                                                                             
+
+API_URL="https://api.github.com/rate_limit"                                    
+
+# Use curl to make an authenticated request and capture the HTTP status code
+# -s: silent mode                                                              
+# -o /dev/null: discard the response body               
+# -w "%{http_code}": print only the HTTP status code                           
+# -H "Authorization: token ...": provide the token in the header
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "$API_URL")
+
+# Check the status code                                                                                                                                       
+if [ "$STATUS" -eq 200 ]; then                                                 
+  echo "Success: GitHub token is valid."    
+  exit 0                                                                       
+elif [ "$STATUS" -eq 401 ] || [ "$STATUS" -eq 403 ]; then
+  echo "Error: GitHub token is invalid or expired."
+  exit 1                                                                       
+else                                                                           
+  echo "Error: Could not validate token. Status code: $STATUS"
+  exit 1                                                                       
+fi       
