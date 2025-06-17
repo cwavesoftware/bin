@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# make sure you have KONDUKTO_HOST and KONDUKTO_TOKEN in environment variables
+if [[ -z "$KONDUKTO_HOST" || -z "$KONDUKTO_TOKEN" ]]; then
+  echo "error: KONDUKTO_HOST and KONDUKTO_TOKEN must be set in environment variables"
+  exit 1
+fi
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+OUT="vulnerabilities_$(date +'%Y-%m-%d_%H-%M-%S').json"
+if [[ -f $OUT ]]; then rm $OUT; fi
+curl_out="tmp_$(basename $0)"
+
+get_kdt_vulns() {
+  local start=0
+  local total=0
+  local count=-1
+
+  while [[ $count -lt $total ]]; do
+    res=$(
+      curl \
+       -w "%{http_code}" \
+       -o "$curl_out" \
+       -sk \
+        "$KONDUKTO_HOST/api/v2/vulnerabilities?start=$start" \
+        --header "X-Cookie: $KONDUKTO_TOKEN"
+    )
+    if [[ $res -eq 200 ]]; then
+      total=$(
+        cat $curl_out | jq '.total'
+      )
+
+      cat $curl_out | jq -r '.vulnerabilities[] | .' >> "$OUT"
+      count=$(
+        cat $OUT | jq -r '.id' | wc -l | tr -d ' '
+      )
+      start=$count
+      echo "got $count out of $total" >&2
+    else
+      echo "error: response code: $res message: $(cat curl_out | jq '.error')"
+      exit 1
+    fi
+  done
+}
+
+get_kdt_vulns
