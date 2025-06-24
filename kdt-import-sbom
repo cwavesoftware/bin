@@ -4,8 +4,8 @@ set -e          # causes the script to exit immediately if any command exits wit
 set -u          # prevents the script from using unset variables
 set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
 
-if [[ $# -ne 4 ]]; then
-  echo "usage: $0 <sbom_file> <project> <branch> <sbom_type>"
+if [[ $# -ne 5 ]]; then
+  echo "usage: $0 <sbom_file> <project> <branch> <sbom_type> <check_working_sbom>"
   exit 1
 fi
 
@@ -15,6 +15,7 @@ TOOL_OUTFILE=$1
 REPO_NAME=$2
 branch=$3
 SBOM_TYPE=$4
+CHECK_WORKING_SBOM=${5:-false}
 
 linux=1
 macos=1
@@ -28,6 +29,10 @@ else
 fi
 
 ok_to_upload() {
+  if [[ "$CHECK_WORKING_SBOM" == "false" ]]; then
+    echo true
+    return 0
+  fi
   res=$(
     curl \
       -w "%{http_code}" \
