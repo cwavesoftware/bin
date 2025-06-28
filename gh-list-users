@@ -1,0 +1,45 @@
+#!/bin/bash
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: $0 <gh_org>"
+  exit 1
+fi
+
+ORG=$1
+TOKEN="$GH_TOKEN"
+
+SLEEP=3 # seconds
+PER_PAGE=100
+curl_out="tmp_$(basename $0)"
+
+# Base GitHub API URL
+BASE_URL="https://api.github.com"
+
+
+PAGE=1
+retries=3
+# Loop through all pages
+while true; do
+  # Make API request for the current page
+  response=$(curl -sk -o $curl_out -w "%{http_code}" -H "authorization: token $TOKEN" "$BASE_URL/orgs/$ORG/members?per_page=$PER_PAGE&page=$PAGE")
+  [[ "$response" -ne 200 ]] && [[ retries -le 3 ]] && sleep $SLEEP && retries=$((retries + 1)) &&
+    echo "$(date): github response code $response, retrying ..." && continue
+  retries=1
+  if [[ $(cat $curl_out | jq -r '.status?') -eq 401 ]]; then
+    echo "ERROR"
+    exit 1
+  fi
+
+  cat $curl_out | jq -r '.[]|.login'
+
+  # Check for the 'Link' header to see if there are more pages
+  LINK_HEADER=$(curl -Isk -H "Authorization: token $TOKEN" "$BASE_URL/orgs/$ORG/members?per_page=$PER_PAGE&page=$PAGE" | grep -i '^Link:')
+
+  # If there is no 'Link' header or it does not contain 'rel="next"', we've reached the last page
+  if [[ ! "$LINK_HEADER" =~ 'rel="next"' ]]; then
+    break
+  fi
+
+  # Move to the next page
+  PAGE=$((PAGE + 1))
+done

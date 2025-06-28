@@ -25,7 +25,7 @@ while true; do
   fi
 
   # Print repository names
-  echo "$RESPONSE" | jq -r '.[] | select(.archived == true) | .name'
+  echo "$RESPONSE" | jq -r '.[] | .name'
 
   # Check for the 'Link' header to see if there are more pages
   LINK_HEADER=$(
