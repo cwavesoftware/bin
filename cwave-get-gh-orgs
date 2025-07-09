@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: $0 <company_name>"
+  exit 1
+fi
+
+COMPANY_NAME=$1
+CURL_OUT="tmp_$(basename "$0").out"
+CWAVE_BASE_URL="https://automation.cwavesoftware.com/webhook"
+CWAVE_GH_ORGS_API="5e74a175-6db5-42a9-bae0-b38f9aa2f452"
+URL="$CWAVE_BASE_URL/$CWAVE_GH_ORGS_API"
+
+response=$(
+	curl -s -o "$CURL_OUT" -w "%{http_code}" "$URL" \
+		-H "x-cwave-auth: $X_CWAVE_AUTH" \
+        -H "Content-Type: application/json" \
+        --data-binary "{\"name\":\"$COMPANY_NAME\",
+        \"domains\":[]
+        }"
+)
+
+
+if [[ "$response" -eq 200 ]]; then
+	cat "$CURL_OUT" | 
+        jq -r 'if .github_urls then .github_urls[] else .raw end'
+else
+	echo "An error occurred. HTTP status code: $response" >&2
+    if [[ -s "$CURL_OUT" ]]; then
+        cat "$CURL_OUT" >&2
+    fi
+	exit 1
+fi
