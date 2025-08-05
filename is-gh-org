@@ -1,5 +1,14 @@
 #!/bin/bash
 
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: $0 <gh_org>"
+  exit 1
+fi
+
 ORG=$1
 
 response=$(
