@@ -9,7 +9,7 @@ if [[ $# -ne 1 ]]; then
   exit 1
 fi
 
-pck=$1
+pck=$(echo $1 | sed 's|@|%40|' | sed 's|/|%2f|')
 
 response=$(
 	curl -I -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/$pck"
