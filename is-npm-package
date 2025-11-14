@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e          # causes the script to exit immediately if any command exits with a non-zero status
+set -u          # prevents the script from using unset variables
+set -o pipefail # exit status of the entire pipeline is the exit status of the last command that failed
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: $0 <package_name>"
+  exit 1
+fi
+
+pck=$1
+
+response=$(
+	curl -I -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/$pck"
+)
+
+if [ "$response" -eq 200 ]; then
+	echo "true"
+	exit 0
+elif [ "$response" -eq 404 ]; then
+	echo "false"
+	exit 0
+else
+	echo "An error occurred. HTTP status code: $response"
+	exit 1
+fi
